@@ -1,0 +1,222 @@
+
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; }
+.section { margin: 2rem 0; }
+.section-title { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 10px; }
+.chart-wrap { position: relative; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--color-text-secondary); margin-bottom: 10px; }
+.legend span { display: flex; align-items: center; gap: 5px; cursor: pointer; padding: 3px 6px; border-radius: var(--border-radius-md); transition: background 0.15s; }
+.legend span:hover { background: var(--color-background-secondary); }
+.swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; flex-shrink: 0; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.filter-btn { font-size: 12px; padding: 4px 12px; border-radius: 999px; border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-secondary); cursor: pointer; transition: all 0.15s; }
+.filter-btn.active { background: var(--color-background-info); color: var(--color-text-info); border-color: transparent; }
+.tooltip-box { position: absolute; background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 8px 12px; font-size: 12px; color: var(--color-text-primary); pointer-events: none; z-index: 10; display: none; max-width: 200px; line-height: 1.5; }
+.divider { border: none; border-top: 0.5px solid var(--color-border-tertiary); margin: 2.5rem 0; }
+</style>
+
+<div class="section">
+  <div class="section-title">1 — Application outcomes by student</div>
+  <div class="legend">
+    <span><span class="swatch" style="background:#2E7D52;"></span>Accepted</span>
+    <span><span class="swatch" style="background:#C8922A;"></span>Waitlist</span>
+    <span><span class="swatch" style="background:#C0392B;"></span>Rejected</span>
+  </div>
+  <div class="chart-wrap" style="height:260px;"><canvas id="c1"></canvas></div>
+</div>
+<hr class="divider">
+
+<div class="section">
+  <div class="section-title">2 — Total applications per student</div>
+  <div class="chart-wrap" style="height:240px;"><canvas id="c2"></canvas></div>
+</div>
+<hr class="divider">
+
+<div class="section">
+  <div class="section-title">3 — Overall outcome split (129 applications)</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:center;">
+    <div class="chart-wrap" style="height:260px;"><canvas id="c3"></canvas></div>
+    <div id="pie-stats" style="font-size:13px;color:var(--color-text-secondary);line-height:2;"></div>
+  </div>
+</div>
+<hr class="divider">
+
+<div class="section">
+  <div class="section-title">4 — Applications by major</div>
+  <div class="chart-wrap" style="height:260px;"><canvas id="c4"></canvas></div>
+</div>
+<hr class="divider">
+
+<div class="section">
+  <div class="section-title">5 — Acceptance rate vs. program ranking (accepted schools)</div>
+  <div style="font-size:12px;color:var(--color-text-tertiary);margin-bottom:8px;">Hover over a point to see the school. Bottom-left = most elite.</div>
+  <div id="scatter-tooltip" class="tooltip-box"></div>
+  <div class="chart-wrap" style="height:320px;"><canvas id="c5"></canvas></div>
+</div>
+<hr class="divider">
+
+<div class="section">
+  <div class="section-title">6 — Personal acceptance rate by student</div>
+  <div style="font-size:12px;color:var(--color-text-tertiary);margin-bottom:8px;">Dashed line = group average. Click a bar to highlight.</div>
+  <div class="chart-wrap" style="height:240px;"><canvas id="c6"></canvas></div>
+</div>
+<hr class="divider">
+
+<div class="section">
+  <div class="section-title">7 — How selective were the non-accepted schools?</div>
+  <div style="font-size:12px;color:var(--color-text-tertiary);margin-bottom:8px;">Lower % = tougher schools targeted. Only students with rejections/waitlists shown.</div>
+  <div class="chart-wrap" style="height:300px;"><canvas id="c7"></canvas></div>
+</div>
+<hr class="divider">
+
+<div class="section">
+  <div class="section-title">8 — Avg acceptance rate of accepted schools per student</div>
+  <div style="font-size:12px;color:var(--color-text-tertiary);margin-bottom:8px;">Lower = got into more selective schools.</div>
+  <div class="chart-wrap" style="height:320px;"><canvas id="c8"></canvas></div>
+</div>
+<hr class="divider">
+
+<div class="section">
+  <div class="section-title">9 — Avg program ranking of accepted schools</div>
+  <div style="font-size:12px;color:var(--color-text-tertiary);margin-bottom:8px;">Lower rank # = better program quality.</div>
+  <div class="chart-wrap" style="height:320px;"><canvas id="c9"></canvas></div>
+</div>
+<hr class="divider">
+
+<div class="section">
+  <div class="section-title">10 — Waitlist rate by student</div>
+  <div class="chart-wrap" style="height:240px;"><canvas id="c10"></canvas></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const G='#2E7D52', A='#C8922A', R='#C0392B', B='#2C5F9E', P='#6B4CA0', T='#1A8A7A';
+const GRID='rgba(128,128,128,0.12)', TICK='#888';
+const base = { responsive:true, maintainAspectRatio:false };
+
+const students = ['Maanvik','Jaideep','Shrivatsa','Madhav','Yashwanth','Roshan','Ved','Kaustub','Anish','Roopesh'];
+const acc  = [8,1,2,2,10,13,13,5,8,16];
+const wl   = [3,0,0,0,0,7,1,0,2,0];
+const rej  = [6,0,0,0,0,8,1,10,2,1];
+const tot  = students.map((_,i)=>acc[i]+wl[i]+rej[i]);
+const pctAcc = students.map((_,i)=>Math.round(acc[i]/tot[i]*100));
+const pctWl  = students.map((_,i)=>Math.round(wl[i]/tot[i]*100));
+const avgPct = Math.round(pctAcc.reduce((a,b)=>a+b)/pctAcc.length);
+
+function axes(x='',y='') {
+  return {
+    x:{ grid:{color:GRID}, ticks:{color:TICK,font:{size:10}}, title: x?{display:true,text:x,color:TICK,font:{size:10}}:{} },
+    y:{ grid:{color:GRID}, ticks:{color:TICK,font:{size:10}}, title: y?{display:true,text:y,color:TICK,font:{size:10}}:{} }
+  };
+}
+
+new Chart(document.getElementById('c1'),{
+  type:'bar',
+  data:{
+    labels:students,
+    datasets:[
+      {label:'Accepted',data:acc,backgroundColor:G,borderRadius:3,stack:'s'},
+      {label:'Waitlist',data:wl,backgroundColor:A,borderRadius:3,stack:'s'},
+      {label:'Rejected',data:rej,backgroundColor:R,borderRadius:3,stack:'s'},
+    ]
+  },
+  options:{...base,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y}`}}},scales:{...axes('','Schools'),x:{stacked:true,grid:{display:false},ticks:{color:TICK,font:{size:10}}},y:{stacked:true,grid:{color:GRID},ticks:{color:TICK,font:{size:10}}}}}
+});
+
+new Chart(document.getElementById('c2'),{
+  type:'bar',
+  data:{labels:students,datasets:[{data:tot,backgroundColor:tot.map(v=>v===Math.max(...tot)?B:'#85B7EB'),borderRadius:4}]},
+  options:{...base,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y} applications`}}},scales:{...axes('','Applications'),x:{grid:{display:false},ticks:{color:TICK,font:{size:10}}},y:{grid:{color:GRID},ticks:{color:TICK,font:{size:10}}}},animation:{onComplete:function(){const{ctx,data,chartArea:{top},scales:{x,y}}=this;ctx.save();ctx.font='bold 10px sans-serif';ctx.fillStyle=TICK;ctx.textAlign='center';data.datasets[0].data.forEach((v,i)=>{const xp=x.getPixelForValue(i),yp=y.getPixelForValue(v);ctx.fillText(v,xp,yp-5);});ctx.restore();}}}
+});
+
+const pieVals=[sum(acc),sum(wl),sum(rej)];
+function sum(a){return a.reduce((x,y)=>x+y,0);}
+const pieLabels=['Accepted','Waitlisted','Rejected'];
+const pieColors=[G,A,R];
+new Chart(document.getElementById('c3'),{
+  type:'doughnut',
+  data:{labels:pieLabels,datasets:[{data:pieVals,backgroundColor:pieColors,borderWidth:2,borderColor:'transparent',hoverBorderColor:'white'}]},
+  options:{...base,cutout:'60%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.parsed} (${Math.round(ctx.parsed/129*100)}%)`}}}}
+});
+document.getElementById('pie-stats').innerHTML = pieLabels.map((l,i)=>`<div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:2px;background:${pieColors[i]};flex-shrink:0;"></span><span>${l}: <strong>${pieVals[i]}</strong> (${Math.round(pieVals[i]/129*100)}%)</span></div>`).join('');
+
+const majors=['CS','Electrical Eng','Biology','Business','Data Science','Aerospace','BioMedical','Robotics'];
+const majorCounts=[29,17,18,12,10,15,1,2];
+const majorColors=[B,'#1A8A7A','#C8922A',P,R,'#D85A30','#D4537E','#444'];
+new Chart(document.getElementById('c4'),{
+  type:'bar',
+  data:{labels:majors,datasets:[{data:majorCounts,backgroundColor:majorColors,borderRadius:4}]},
+  options:{...base,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y} applications`}}},scales:{...axes('','Applications'),x:{grid:{display:false},ticks:{color:TICK,font:{size:10},maxRotation:30}},y:{grid:{color:GRID},ticks:{color:TICK,font:{size:10}}}}}
+});
+
+const scatter=[
+  {x:90,y:36,n:'ASU (EE)'},{x:56,y:28,n:'Penn State'},{x:86,y:40,n:'UofA'},{x:50,y:6,n:'Purdue'},
+  {x:54,y:22,n:'Ohio State'},{x:45,y:4,n:'UIUC'},{x:52,y:25,n:'UDub'},{x:24,y:20,n:'UCSD'},
+  {x:12,y:3,n:'UC Berkeley'},{x:57,y:14,n:'UW Madison'},{x:37,y:20,n:'UF'},{x:73,y:30,n:'UM Twin Cities'},
+  {x:9,y:12,n:'Rice'},{x:18,y:9,n:'UMich'},{x:44,y:15,n:'UMaryland'},{x:50,y:16,n:'Purdue (CS)'},
+  {x:60,y:25,n:'UMass'},{x:14,y:35,n:'Northeastern'},{x:20,y:24,n:'UVA'},{x:5,y:20,n:'Duke'},
+  {x:11,y:10,n:'CMU'},{x:65,y:27,n:'VTech'},{x:28,y:47,n:'UCI'},{x:36,y:19,n:'UCSB'},
+  {x:9,y:11,n:'UCLA'},{x:65,y:2,n:'Embry Riddle'},{x:81,y:18,n:'CU Boulder'},{x:57,y:12,n:'Texas A&M'},
+  {x:79,y:8,n:'Indiana'},{x:24,y:1,n:'Babson'},{x:68,y:22,n:'USCarolina'},{x:46,y:35,n:'UCD'},
+  {x:54,y:60,n:'UPitt'},{x:56,y:55,n:'Penn State (Bio)'},{x:34,y:35,n:'URochester'},
+  {x:43,y:42,n:'Case Western'},{x:50,y:52,n:'Stony Brook'},{x:52,y:45,n:'RPI'},
+  {x:53,y:55,n:'Stevens'},{x:68,y:48,n:'Rutgers'},{x:79,y:65,n:'UI-Chicago'},
+  {x:72,y:70,n:'Drexel'},{x:50,y:50,n:'UConn'},{x:69,y:80,n:'Syracuse'},{x:77,y:75,n:'UCincinnati'},
+];
+const c5 = new Chart(document.getElementById('c5'),{
+  type:'scatter',
+  data:{datasets:[{data:scatter.map(d=>({x:d.x,y:d.y})),backgroundColor:'rgba(44,95,158,0.6)',pointRadius:7,pointHoverRadius:10,pointHoverBackgroundColor:B}]},
+  options:{...base,layout:{padding:16},plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{...axes('Acceptance rate (%)','').x,min:-2,max:108},y:{...axes('','Program ranking').y,min:-2,max:135,title:{display:true,text:'Program ranking (lower = better)',color:TICK,font:{size:10}}}}}
+});
+const c5canvas = document.getElementById('c5');
+const ttip = document.getElementById('scatter-tooltip');
+c5canvas.addEventListener('mousemove', e => {
+  const pts = c5.getElementsAtEventForMode(e,'nearest',{intersect:true},true);
+  if(pts.length) {
+    const pt = scatter[pts[0].index];
+    ttip.style.display='block';
+    ttip.style.left=(e.offsetX+12)+'px';
+    ttip.style.top=(e.offsetY-10)+'px';
+    ttip.innerHTML=`<strong>${pt.n}</strong><br>Accept rate: ${pt.x}%<br>Rank: #${pt.y}`;
+  } else { ttip.style.display='none'; }
+});
+c5canvas.addEventListener('mouseleave',()=>{ ttip.style.display='none'; });
+
+const accColors = pctAcc.map(v=>v>=70?G:v>=40?A:R);
+const c6 = new Chart(document.getElementById('c6'),{
+  type:'bar',
+  data:{labels:students,datasets:[{data:pctAcc,backgroundColor:accColors,borderRadius:4,hoverBorderWidth:2,hoverBorderColor:'#fff'}]},
+  options:{...base,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y}% acceptance rate`}},annotation:{annotations:{line1:{type:'line',yMin:avgPct,yMax:avgPct,borderColor:'rgba(44,95,158,0.6)',borderWidth:1.5,borderDash:[4,4]}}}},scales:{...axes('','% accepted'),x:{grid:{display:false},ticks:{color:TICK,font:{size:10}}},y:{grid:{color:GRID},ticks:{color:TICK,font:{size:10},callback:v=>v+'%'},max:115}},animation:{onComplete:function(){const{ctx,scales:{x,y}}=this;ctx.save();ctx.setLineDash([5,5]);ctx.strokeStyle='rgba(44,95,158,0.5)';ctx.lineWidth=1.5;ctx.beginPath();const yp=y.getPixelForValue(avgPct);ctx.moveTo(x.left,yp);ctx.lineTo(x.right,yp);ctx.stroke();ctx.fillStyle=B;ctx.font='11px sans-serif';ctx.fillText('avg '+avgPct+'%',x.right-55,yp-5);ctx.restore();}}}
+});
+
+const reachStudents=['Maanvik','Roshan','Kaustub','Anish','Roopesh','Ved'];
+const reachRates=[Math.round((18+13+10+3+9+17+31+5+9+4)/10),Math.round((2+11+6+17+4+52+10+7+24+9+5+4+8+4+5+5+5+7)/18),Math.round((4+8+17+4+50+4+31+45+18+5)/10),Math.round((8+28+12+12)/4),6,Math.round((17+12)/2)];
+new Chart(document.getElementById('c7'),{
+  type:'bar',
+  data:{labels:reachStudents,datasets:[{data:reachRates,backgroundColor:reachRates.map(v=>v<15?R:v<25?A:'#85B7EB'),borderRadius:4,indexAxis:'y'}]},
+  options:{...base,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`Avg ${ctx.parsed.x}% acceptance rate`}}},scales:{x:{grid:{color:GRID},ticks:{color:TICK,font:{size:10},callback:v=>v+'%'},title:{display:true,text:'Avg acceptance rate of rejected/waitlisted schools',color:TICK,font:{size:10}}},y:{grid:{display:false},ticks:{color:TICK,font:{size:10}}}}}
+});
+
+const selNames=['Maanvik','Yashwanth','Roshan','Ved','Kaustub','Anish','Roopesh'];
+const selRates=[Math.round((90+56+86+50+54+45+52+24)/8),Math.round((81+79+50+57+90+37+73+9+86)/9),Math.round((12+45+18+8+57+44+50+60+14+20+53+90+5)/13),Math.round((90+11+86+45+44+73+52+57+65+28+36+24+9)/13),Math.round((65+81+57+86+90)/5),Math.round((14+90+79+57+52+68+46+24)/8),Math.round((54+56+71+65+34+43+50+52+53+68+79+72+54+50+69+77)/16)];
+new Chart(document.getElementById('c8'),{
+  type:'bar',
+  data:{labels:selNames,datasets:[{data:selRates,backgroundColor:selRates.map(v=>v<35?T:v<55?B:'#85B7EB'),borderRadius:4,indexAxis:'y'}]},
+  options:{...base,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`Avg ${ctx.parsed.x}% acceptance rate`}}},scales:{x:{grid:{color:GRID},ticks:{color:TICK,font:{size:10},callback:v=>v+'%'},title:{display:true,text:'Avg acceptance rate of accepted schools',color:TICK,font:{size:10}}},y:{grid:{display:false},ticks:{color:TICK,font:{size:10}}}}}
+});
+
+const rankNames=['Maanvik','Yashwanth','Roshan','Ved','Kaustub','Anish','Roopesh'];
+const rankVals=[Math.round((36+28+40+6+22+4+25+20)/8),Math.round((100+75+6+14+20+30+12)/7),Math.round((3+5+9+30+14+15+16+25+35+24+55+50+20)/13),Math.round((36+10+40+4+12+18+25+16+27+47+19+20+11)/13),Math.round((2+18+12+30+25)/5),Math.round((10+30+8+7+18+22+35+1)/8),Math.round((60+55+35+42+52+45+55+48+65+70+50+80+75)/13)];
+new Chart(document.getElementById('c9'),{
+  type:'bar',
+  data:{labels:rankNames,datasets:[{data:rankVals,backgroundColor:rankVals.map(v=>v<20?P:v<35?B:'#85B7EB'),borderRadius:4,indexAxis:'y'}]},
+  options:{...base,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`Avg rank #${ctx.parsed.x}`}}},scales:{x:{grid:{color:GRID},ticks:{color:TICK,font:{size:10}},title:{display:true,text:'Avg program ranking (lower = better)',color:TICK,font:{size:10}}},y:{grid:{display:false},ticks:{color:TICK,font:{size:10}}}}}
+});
+
+new Chart(document.getElementById('c10'),{
+  type:'bar',
+  data:{labels:students,datasets:[{data:pctWl,backgroundColor:pctWl.map(v=>v>0?A:'#DDDDDD'),borderRadius:4}]},
+  options:{...base,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y}% waitlisted`}}},scales:{...axes('','% waitlisted'),x:{grid:{display:false},ticks:{color:TICK,font:{size:10}}},y:{grid:{color:GRID},ticks:{color:TICK,font:{size:10},callback:v=>v+'%'},max:Math.max(...pctWl)+8}}}
+});
+</script>
