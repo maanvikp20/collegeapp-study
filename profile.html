@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Profile | CollegeApp Study</title>
+  <link rel="stylesheet" href="profile.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-inner">
+      <span class="logo">📚 CollegeApp Study</span>
+      <nav>
+        <a href="#">Dashboard</a>
+        <a href="#">Courses</a>
+        <a href="#" class="active">Profile</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="profile-page">
+    <section class="profile-card">
+      <div class="avatar-wrapper">
+        <img
+          id="avatar"
+          src="https://ui-avatars.com/api/?name=Alex+Rivera&background=4f46e5&color=fff&size=128"
+          alt="Alex Rivera avatar"
+          class="avatar"
+        />
+        <button class="avatar-edit-btn" aria-label="Change profile picture" onclick="document.getElementById('avatar-input').click()">✏️</button>
+        <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="previewAvatar(event)" />
+      </div>
+
+      <div class="profile-info">
+        <h1 id="display-name">Alex Rivera</h1>
+        <p class="profile-sub">Computer Science · Junior · GPA 3.8</p>
+        <p class="profile-bio" id="bio-display">Passionate about algorithms, coffee, and open-source projects. Always looking for study partners!</p>
+      </div>
+
+      <button class="btn btn-primary" onclick="openEdit()">Edit Profile</button>
+    </section>
+
+    <section class="stats-row">
+      <div class="stat-card">
+        <span class="stat-value">12</span>
+        <span class="stat-label">Courses</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">48</span>
+        <span class="stat-label">Study Hours</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">7</span>
+        <span class="stat-label">Study Groups</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">23</span>
+        <span class="stat-label">Resources Shared</span>
+      </div>
+    </section>
+
+    <section class="profile-details">
+      <div class="detail-block">
+        <h2>About</h2>
+        <ul class="detail-list">
+          <li><span class="label">Major</span><span class="value">Computer Science</span></li>
+          <li><span class="label">Year</span><span class="value">Junior (3rd Year)</span></li>
+          <li><span class="label">University</span><span class="value">State University</span></li>
+          <li><span class="label">Email</span><span class="value">alex.rivera@stateuni.edu</span></li>
+        </ul>
+      </div>
+
+      <div class="detail-block">
+        <h2>Interests</h2>
+        <div class="tag-list" id="interests">
+          <span class="tag">Algorithms</span>
+          <span class="tag">Machine Learning</span>
+          <span class="tag">Web Dev</span>
+          <span class="tag">Data Structures</span>
+          <span class="tag">Open Source</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Edit Modal -->
+    <div id="edit-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-backdrop" onclick="closeEdit()"></div>
+      <div class="modal-box">
+        <h2 id="modal-title">Edit Profile</h2>
+        <form onsubmit="saveEdit(event)">
+          <label for="edit-name">Full Name</label>
+          <input type="text" id="edit-name" value="Alex Rivera" required />
+
+          <label for="edit-major">Major</label>
+          <input type="text" id="edit-major" value="Computer Science" />
+
+          <label for="edit-year">Year</label>
+          <select id="edit-year">
+            <option>Freshman</option>
+            <option>Sophomore</option>
+            <option selected>Junior</option>
+            <option>Senior</option>
+            <option>Graduate</option>
+          </select>
+
+          <label for="edit-bio">Bio</label>
+          <textarea id="edit-bio" rows="3">Passionate about algorithms, coffee, and open-source projects. Always looking for study partners!</textarea>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" onclick="closeEdit()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script src="profile.js"></script>
+</body>
+</html>
